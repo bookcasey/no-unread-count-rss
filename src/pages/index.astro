@@ -7,26 +7,30 @@ import urls from "../../feeds.json";
 
 const data = await Promise.all(
 	urls.map(async (url) => {
-		const feed = await parser.parseURL(url);
+		try {
+			const feed = await parser.parseURL(url);
 
-		return feed.items.map((item) => {
-			return {
-				guid: item.guid,
-				title: item.title,
-				creator: item.creator,
-				link: item.link,
-				content: item.content,
-				pubDate: item.pubDate,
-			};
-		});
+			return feed.items.map((item) => {
+				return {
+					guid: item.guid,
+					title: item.title,
+					creator: item.creator,
+					link: item.link,
+					content: item.content,
+					pubDate: item.pubDate,
+				};
+			});
+		} catch (e) {
+			console.log(url, e);
+		}
 	}),
 );
 
 const articles = data
 	.flat()
-	.filter((article) => article.pubDate)
+	.filter((article) => article?.pubDate)
 	.sort((a, b) => {
-		if (a.pubDate && b.pubDate) {
+		if (a?.pubDate && b?.pubDate) {
 			return new Date(a.pubDate) < new Date(b.pubDate) ? 1 : -1;
 		}
 
