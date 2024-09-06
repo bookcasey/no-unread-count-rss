@@ -1,41 +1,36 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Parser from "rss-parser";
-let parser = new Parser();
+const parser = new Parser();
 
 import urls from "../../feeds.json";
 
-const data = await Promise.all(
+const feedsData = await Promise.all(
 	urls.map(async (url) => {
 		try {
 			const feed = await parser.parseURL(url);
-
-			return feed.items.map((item) => {
-				return {
-					guid: item.guid,
-					title: item.title,
-					creator: item.creator,
-					link: item.link,
-					content: item.content,
-					pubDate: item.pubDate,
-				};
-			});
+			return feed.items.map((item) => ({
+				guid: item.guid,
+				title: item.title,
+				creator: item.creator,
+				link: item.link,
+				content: item.content,
+				pubDate: item.pubDate,
+			}));
 		} catch (e) {
-			console.log(url, e);
+			console.error(`Error fetching feed from ${url}`, e);
+			return [];
 		}
 	}),
 );
 
-const articles = data
-	.flat()
+const articles = feedsData
+	.reduce((acc, curr) => acc.concat(curr), [])
 	.filter((article) => article?.pubDate)
-	.sort((a, b) => {
-		if (a?.pubDate && b?.pubDate) {
-			return new Date(a.pubDate) < new Date(b.pubDate) ? 1 : -1;
-		}
-
-		return -1;
-	});
+	.sort(
+		(a, b) =>
+			new Date(b.pubDate!).getTime() - new Date(a.pubDate!).getTime(),
+	);
 ---
 
 <Layout title="RSS feed">
@@ -45,15 +40,15 @@ const articles = data
 				articles.map((article) => (
 					<li id={article?.guid}>
 						<h2>
-							<a target="_blank" href={article?.link}>
-								{article?.title}
+							<a target="_blank" href={article.link}>
+								{article.title}
 							</a>
 						</h2>
 						<section>
-							<div>{article?.creator}</div>
+							<div>{article.creator}</div>
 							<div>
 								{new Date(
-									article?.pubDate || 0,
+									article.pubDate!,
 								).toLocaleDateString()}
 							</div>
 						</section>
@@ -85,7 +80,7 @@ const articles = data
 
 					const stored = localStorage.getItem(key);
 
-					// In the case of multiple active sessions,
+					// In the case of concurrent sessions,
 					// this check prevents old session from updating incorrectly.
 					if (
 						!stored ||
@@ -100,7 +95,7 @@ const articles = data
 		},
 	);
 
-	const last = ids[ids.length - 1];
+	const last = ids[ids.length - 1] || "";
 
 	const id = localStorage.getItem(key) || last;
 
