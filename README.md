@@ -1,8 +1,10 @@
 # No unread count RSS
 
-It remembers scroll position instead.
+Scrolls down to last seen article instead.
 
 Minimalist RSS feed inspired by [Silvio Rizzi's yet to be released Reeder](https://gloria.social/@rizzi/111856959119832404)
+
+[Try it out](https://bookcasey.github.io/no-unread-count-rss/)
 
 ## Why?
 
@@ -14,7 +16,7 @@ I like reading blogs on the web, so it's a feed and not a reader.
 
 ## Make your own
 
-Fork this project and update the `feeds.json`.
+Fork this project and update the `feeds.json`. Modify `site` in `astro.config.mjs` to match your GitHub pages URL.
 
 ## Technical details
 
