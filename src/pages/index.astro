@@ -1,27 +1,9 @@
 ---
 import Layout from "../layouts/Layout.astro";
 import Parser from "rss-parser";
-
-const simpleHash = (str: string) => {
-	let hash = 0;
-	for (let i = 0; i < str.length; i++) {
-		const char = str.charCodeAt(i);
-		hash = (hash << 5) - hash + char;
-	}
-	return hash;
-};
-
 let parser = new Parser();
 
-const urls = [
-	"https://lloydalter.substack.com/feed",
-	"https://www.construction-physics.com/feed",
-	"https://climate.benjames.io/posts/rss",
-];
-
-function dateWithoutTime(str: string) {
-	return new Date(new Date(str).toDateString());
-}
+import urls from "../../feeds.json";
 
 const data = await Promise.all(
 	urls.map(async (url) => {
@@ -29,7 +11,7 @@ const data = await Promise.all(
 
 		return feed.items.map((item) => {
 			return {
-				hash: simpleHash(item.guid),
+				guid: item.guid,
 				title: item.title,
 				creator: item.creator,
 				link: item.link,
@@ -40,68 +22,46 @@ const data = await Promise.all(
 	}),
 );
 
-// In order to divide into dates, we need to know the timezone of the user...
-const dates = Object.entries(
-	data.flat().reduce<Record<string, object[]>>((acc, article) => {
-		if (!article.pubDate) return acc;
-		(acc[dateWithoutTime(article.pubDate).toISOString()] ??= []).push(
-			article,
-		); // Logical nullish assignment operator, who knew
-		return acc;
-	}, {}),
-)
-	.map(([date, article]) => ({
-		date,
-		articles: article.sort(
-			(a, b) => new Date(b.pubDate) - new Date(a.pubDate),
-		),
-	}))
-	.sort((a, b) => new Date(b.date) - new Date(a.date));
+const articles = data
+	.flat()
+	.sort((a, b) => new Date(b.pubDate) - new Date(a.pubDate));
 ---
 
-<Layout title="Welcome to Astro.">
+<Layout title="RSS feed">
 	<main>
 		<ul>
 			{
-				dates.map((date) => (
-					<li><h2>{new Date(date.date).toLocaleDateString()}<h2>
-						<ul>
-							{
-						date.articles.map((article) => (
-					<li id={article.hash.toString()}>
-						<h3>
-							<a href={article.link}>{article.title}</a>
-						</h3>
-						<p>
-							{article.creator} - {new Date(article.pubDate).toLocaleDateString()}
-						</p>
-					</li>
-				))
-			}
-						</ul>
-					</li>
-				))
-			}
-			<!-- {
 				articles.map((article) => (
-					<li id={article.hash.toString()}>
+					<li id={article.guid}>
 						<h2>
-							<a href={article.link}>{article.title}</a>
+							<a target="_blank" href={article.link}>
+								{article.title}
+							</a>
 						</h2>
-						<p>
-							{new Date(article.pubDate).toLocaleDateString()} -{" "}
-							{article.content}
-						</p>
+						<section>
+							<div>{article.creator}</div>
+							<div>
+								{new Date(article.pubDate).toLocaleDateString()}
+							</div>
+						</section>
 					</li>
 				))
-			} -->
+			}
 		</ul>
-		<footer><button>Reset scroll position</button></footer>
+		<footer>
+			<button>Reset scroll position</button>
+		</footer>
 	</main>
 </Layout>
 
 <script>
-	const localStorageKey = "current";
+	const key = "current";
+
+	const ids = [...document.querySelectorAll("li")].map((node) => node.id);
+
+	function findIndex(x: string) {
+		return ids.findIndex((id) => id === x);
+	}
 
 	const observer = new IntersectionObserver(
 		(entries) => {
@@ -109,39 +69,80 @@ const dates = Object.entries(
 				const intersecting = entry.isIntersecting;
 				if (intersecting) {
 					observer.unobserve(entry.target);
-					localStorage.setItem(localStorageKey, entry.target.id);
+
+					const stored = localStorage.getItem(key);
+
+					// In the case of multiple active sessions,
+					// this check prevents old session from updating incorrectly.
+					if (
+						!stored ||
+						findIndex(entry.target.id) < findIndex(stored)
+					)
+						localStorage.setItem(key, entry.target.id);
 				}
 			});
 		},
 		{
-			threshold: 0.8,
+			threshold: 0.9,
 		},
 	);
 
-	const ids = [...document.querySelectorAll("li")].map((node) => node.id);
-
 	const last = ids[ids.length - 1];
 
-	const id = localStorage.getItem(localStorageKey);
+	const id = localStorage.getItem(key) || last;
 
-	location.href = `#${id && document.getElementById(id) ? id : last}`;
+	if (window.history.scrollRestoration)
+		window.history.scrollRestoration = "manual";
+	document.getElementById(id)?.scrollIntoView();
 
 	const ids_before_current = ids.slice(0, ids.indexOf(id));
 
-	ids_before_current.map((id) => {
-		const element = document.getElementById(id);
-		if (element) observer.observe(element);
-	});
+	const observe = (
+		items: string[],
+		method: "observe" | "unobserve" = "observe",
+	) => {
+		items.forEach((item) => {
+			const element = document.getElementById(item);
+			if (element) observer[method](element);
+		});
+	};
+
+	observe(ids_before_current);
 
 	document.querySelector("footer button")?.addEventListener("click", () => {
-		localStorage.setItem(localStorageKey, last);
-		location.href = `#${last}`;
-		location.reload(); // Would be better to reinit Intersection Observer manually
+		localStorage.setItem(key, last);
+		// Remove and then re-add all event handlers
+		observe(ids_before_current, "unobserve");
+		document.getElementById(last)?.scrollIntoView();
+		observe(ids);
 	});
 </script>
 
 <style>
+	main {
+		max-width: 30rem;
+		margin: 0 auto;
+	}
+
 	footer {
 		height: 100vh;
+	}
+
+	h2 {
+		margin-bottom: 0.5rem;
+	}
+
+	ul {
+		padding: 2rem;
+		list-style-type: none;
+	}
+
+	a {
+		text-decoration: none;
+	}
+
+	section {
+		display: flex;
+		justify-content: space-between;
 	}
 </style>

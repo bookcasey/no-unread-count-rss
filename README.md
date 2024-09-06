@@ -1,54 +1,42 @@
-# Astro Starter Kit: Basics
+# No unread count RSS
 
-```sh
-npm create astro@latest -- --template basics
-```
+It remembers scroll position instead.
 
-[![Open in StackBlitz](https://developer.stackblitz.com/img/open_in_stackblitz.svg)](https://stackblitz.com/github/withastro/astro/tree/latest/examples/basics)
-[![Open with CodeSandbox](https://assets.codesandbox.io/github/button-edit-lime.svg)](https://codesandbox.io/p/sandbox/github/withastro/astro/tree/latest/examples/basics)
-[![Open in GitHub Codespaces](https://github.com/codespaces/badge.svg)](https://codespaces.new/withastro/astro?devcontainer_path=.devcontainer/basics/devcontainer.json)
+Minimalist RSS feed inspired by [Silvio Rizzi's yet to be released Reeder](https://gloria.social/@rizzi/111856959119832404)
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+## Why?
 
-![just-the-basics](https://github.com/withastro/astro/assets/2244813/a0a5533c-a856-4198-8470-2d67b1d7c554)
+Unread counts make RSS feel like an email inbox, which feels like work.
 
-## 🚀 Project Structure
+Feeds that don't keep track of anything (YouTube subscriptions, [Bubo](https://github.com/georgemandis/bubo-rss), [osmosfeed](https://github.com/osmoscraft/osmosfeed)), make you remember and then scroll down to the last thing you viewed, which is tedious.
 
-Inside of your Astro project, you'll see the following folders and files:
+I like reading blogs on the web, so it's a feed and not a reader.
 
-```text
-/
-├── public/
-│   └── favicon.svg
-├── src/
-│   ├── components/
-│   │   └── Card.astro
-│   ├── layouts/
-│   │   └── Layout.astro
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+## Make your own
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+Fork this project and update the `feeds.json`.
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+## Technical details
 
-Any static assets, like images, can be placed in the `public/` directory.
+Static site built with Astro.js with a few lines of Vanilla client-side JS. Stores the newest article that has entered view in `LocalStorage`, on load will scroll down to that article.
 
-## 🧞 Commands
+Default deployment is on GitHub pages, with a GitHub Actions CRON job that updates twice daily.
 
-All commands are run from the root of the project, from a terminal:
+## FAQ
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+### Can anyone see my feed if it's deployed on GitHub pages?
 
-## 👀 Want to learn more?
+Yes, but your scroll position is stored locally. Fork it, host it somewhere else, and add authentication if you please.
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+### I'm refreshing to test it, and it's not remembering where I was!
+
+On load it will scroll down to the most recently posted article that you have seen. If you scroll down further to older articles and then refresh, it will take you back up to that most-recently posted seen article. It would have been simpler to implement a version that just saved the scroll position, but that was not my intention.
+
+### I don't like visited links being purple
+
+Fork it and add `a { color: blue }` to the `style` block in `index.astro`
+
+### Can I view feed for just one blog?
+
+No. Go to the homepage of that blog.
+
